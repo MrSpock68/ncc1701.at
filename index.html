@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ncc1701.at – Unbekannte Welten</title>
+<meta name="description" content="Dieser Sektor ist noch nicht kartografiert. Das Außenteam ist unterwegs.">
+<meta name="theme-color" content="#02030a">
+<style>
+  :root{
+    --bg:#02030a;
+    --text:#d8e4ff;
+    --dim:#7f8fb8;
+    --accent:#6fd3ff;
+    --accent2:#ffb347;
+    --panel:rgba(6,10,28,.55);
+    --line:rgba(111,211,255,.22);
+  }
+  html,body{margin:0;height:100%;overflow:hidden;color:var(--text);
+    background:
+      radial-gradient(ellipse 60% 45% at 18% 28%, rgba(90,50,160,.22), transparent 70%),
+      radial-gradient(ellipse 55% 40% at 82% 72%, rgba(20,90,150,.20), transparent 70%),
+      var(--bg);
+  }
+  body{font-family:ui-monospace,"Cascadia Mono",Consolas,"SFMono-Regular",Menlo,monospace;}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+  .vignette{position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,.75) 100%)}
+  main{position:relative;z-index:2;height:100%;display:flex;align-items:center;justify-content:center;
+    padding:16px;box-sizing:border-box;pointer-events:none}
+  .panel{pointer-events:auto;max-width:680px;width:100%;box-sizing:border-box;background:var(--panel);
+    border:1px solid var(--line);border-radius:14px;padding:26px 26px 22px;
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+    box-shadow:0 0 50px rgba(111,211,255,.07), inset 0 0 30px rgba(111,211,255,.04)}
+  .head{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:11px;
+    letter-spacing:.22em;color:var(--dim);text-transform:uppercase;margin-bottom:18px}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent2);
+    margin-right:9px;vertical-align:1px;box-shadow:0 0 8px var(--accent2);animation:pulse 1.6s infinite}
+  #log{min-height:8.2em;font-size:clamp(14px,2.3vw,17px);line-height:1.65}
+  #log .line{display:block}
+  #log .line:first-child{color:var(--accent)}
+  .cursor{display:inline-block;width:.55em;height:1.05em;background:var(--accent);
+    vertical-align:-.18em;margin-left:2px;animation:blink 1s steps(1) infinite}
+  .slogan{margin-top:20px;padding-top:18px;border-top:1px solid var(--line);
+    font-family:system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-weight:650;
+    font-size:clamp(20px,4.2vw,30px);line-height:1.25;color:#fff;min-height:2.5em;
+    text-shadow:0 0 18px rgba(111,211,255,.35);
+    opacity:0;transform:translateY(6px);transition:opacity .9s ease, transform .9s ease}
+  .slogan.show{opacity:1;transform:none}
+  .hint{position:fixed;left:0;right:0;bottom:14px;z-index:2;text-align:center;font-size:11px;
+    letter-spacing:.2em;text-transform:uppercase;color:var(--dim);opacity:.7;pointer-events:none}
+  @keyframes blink{50%{opacity:0}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  @media (max-width:480px){ .panel{padding:20px 18px 18px} .head{font-size:10px;letter-spacing:.15em} }
+</style>
+</head>
+<body>
+<canvas id="stars" aria-hidden="true"></canvas>
+<div class="vignette" aria-hidden="true"></div>
+
+<main>
+  <section class="panel" aria-live="polite">
+    <div class="head"><span><span class="dot"></span>Subraum-Signal</span><span>ncc1701.at</span></div>
+    <div id="log"></div>
+    <div id="slogan" class="slogan"></div>
+    <noscript>
+      <p>Logbuch: Neuer Sektor erreicht – ncc1701.at.<br>Diese Welt ist noch unerforscht. Landung folgt.</p>
+      <p style="font-size:24px;font-weight:650;color:#fff">Mutig dorthin, wo noch keine Homepage war.</p>
+    </noscript>
+  </section>
+</main>
+<div class="hint">Klick oder Tipp &rarr; Warp</div>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- Sternzeit (eigene Formel: Jahr seit 1946 × 1000 + Jahresanteil) ---------- */
+  function stardate(d = new Date()) {
+    const y = d.getFullYear();
+    const start = new Date(y, 0, 1), end = new Date(y + 1, 0, 1);
+    return ((y - 1946) * 1000 + (d - start) / (end - start) * 1000).toFixed(1);
+  }
+
+  /* ---------- Warp-Sternenfeld ---------- */
+  const c = document.getElementById('stars');
+  const ctx = c.getContext('2d');
+  let w, h, cx, cy, stars = [];
+  let speed = 0, target = reduce ? 0.4 : 2.2, warpUntil = 0;
+  const BASE = reduce ? 0.4 : 2.2, WARP = 38;
+
+  function newStar(randomDepth) {
+    const z = randomDepth ? Math.random() * w : w;
+    const r = Math.random();
+    return {
+      x: (Math.random() * 2 - 1) * w,
+      y: (Math.random() * 2 - 1) * h,
+      z, pz: z,
+      col: r < 0.08 ? [150, 210, 255] : r < 0.13 ? [255, 200, 140] : [235, 240, 255]
+    };
+  }
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = innerWidth; h = innerHeight; cx = w / 2; cy = h / 2;
+    c.width = w * dpr; c.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const n = Math.round(Math.min(900, Math.max(250, w * h / 1800)));
+    stars = Array.from({ length: n }, () => newStar(true));
+  }
+  function project(x, y, z) {
+    const f = cx;
+    return [cx + x * f / z, cy + y * f / z];
+  }
+
+  let last = performance.now();
+  function frame(t) {
+    const dt = Math.min((t - last) / 16.67, 3); last = t;
+    target = t < warpUntil ? WARP : BASE;
+    speed += (target - speed) * (target > speed ? 0.06 : 0.03) * dt;
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.lineCap = 'round';
+    for (const s of stars) {
+      s.pz = s.z;
+      s.z -= speed * dt;
+      if (s.z < 1) { Object.assign(s, newStar(false)); continue; }
+      const [x1, y1] = project(s.x, s.y, s.pz);
+      const [x2, y2] = project(s.x, s.y, s.z);
+      if (x2 < -50 || x2 > w + 50 || y2 < -50 || y2 > h + 50) { Object.assign(s, newStar(false)); continue; }
+      const k = 1 - s.z / w;                 // 0 = fern, 1 = nah
+      const a = Math.min(1, 0.15 + k * 1.1);
+      ctx.strokeStyle = `rgba(${s.col[0]},${s.col[1]},${s.col[2]},${a})`;
+      ctx.lineWidth = 0.4 + k * 2.4;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2 + 0.01, y2);
+      ctx.stroke();
+    }
+    requestAnimationFrame(frame);
+  }
+  addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(frame);
+
+  if (!reduce) {
+    addEventListener('pointerdown', () => { warpUntil = performance.now() + 1400; });
+    addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') warpUntil = performance.now() + 1400; });
+  } else {
+    document.querySelector('.hint').style.display = 'none';
+  }
+
+  /* ---------- Logbuch mit Tipp-Effekt ---------- */
+  const lines = [
+    `Logbuch, Sternzeit ${stardate()}.`,
+    'Neuer Sektor erreicht: ncc1701.at',
+    'Sensoren melden: keine Inhalte. Diese Welt ist noch unerforscht.',
+    'Das Außenteam ist unterwegs. Landung folgt.'
+  ];
+  const slogans = [
+    'Mutig dorthin, wo noch keine Homepage war.',
+    'Unbekannte Welten – diese hier inklusive.',
+    'Wir erforschen noch. Bitte halten Sie sich bereit.'
+  ];
+
+  const log = document.getElementById('log');
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  async function typeLog() {
+    for (const text of lines) {
+      const el = document.createElement('span');
+      el.className = 'line';
+      log.appendChild(el);
+      if (reduce) { el.textContent = text; continue; }
+      el.appendChild(cursor);
+      for (const ch of text) {
+        cursor.before(ch);
+        await sleep(ch === ' ' ? 18 : 26 + Math.random() * 22);
+      }
+      await sleep(650);
+    }
+    log.lastChild.appendChild(cursor);
+  }
+
+  async function rotateSlogans() {
+    const el = document.getElementById('slogan');
+    let i = 0;
+    while (true) {
+      el.textContent = slogans[i];
+      el.classList.add('show');
+      await sleep(5200);
+      el.classList.remove('show');
+      await sleep(900);
+      i = (i + 1) % slogans.length;
+    }
+  }
+
+  typeLog().then(() => sleep(400)).then(rotateSlogans);
+})();
+</script>
+</body>
+</html>
