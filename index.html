@@ -7,56 +7,126 @@
 <meta name="description" content="Dieser Sektor ist noch nicht kartografiert. Das Außenteam ist unterwegs.">
 <meta name="theme-color" content="#02030a">
 <style>
-  :root{
-    --bg:#02030a;
-    --text:#d8e4ff;
-    --dim:#7f8fb8;
-    --accent:#6fd3ff;
-    --accent2:#ffb347;
-    --panel:rgba(6,10,28,.55);
-    --line:rgba(111,211,255,.22);
+  /* ---------- Themes ---------- */
+  :root, [data-theme="nebula"]{
+    --bg:#02030a; --text:#d8e4ff; --dim:#7f8fb8;
+    --accent:#6fd3ff; --accent2:#ffb347;
+    --panel:rgba(6,10,28,.55); --line:rgba(111,211,255,.22);
+    --neb1:rgba(90,50,160,.22); --neb2:rgba(20,90,150,.20); --neb3:rgba(150,40,120,.10);
+    --glow:rgba(111,211,255,.35);
   }
-  html,body{margin:0;height:100%;overflow:hidden;color:var(--text);
-    background:
-      radial-gradient(ellipse 60% 45% at 18% 28%, rgba(90,50,160,.22), transparent 70%),
-      radial-gradient(ellipse 55% 40% at 82% 72%, rgba(20,90,150,.20), transparent 70%),
-      var(--bg);
+  [data-theme="eis"]{
+    --bg:#010610; --text:#e2f3ff; --dim:#7fa3c0;
+    --accent:#9fe8ff; --accent2:#c8f4ff;
+    --panel:rgba(4,16,30,.55); --line:rgba(159,232,255,.25);
+    --neb1:rgba(40,120,190,.22); --neb2:rgba(120,200,230,.14); --neb3:rgba(200,240,255,.07);
+    --glow:rgba(159,232,255,.40);
   }
+  [data-theme="riese"]{
+    --bg:#0a0303; --text:#ffe6da; --dim:#b88a7a;
+    --accent:#ff8a5c; --accent2:#ffd36b;
+    --panel:rgba(26,8,6,.55); --line:rgba(255,138,92,.24);
+    --neb1:rgba(180,50,30,.24); --neb2:rgba(230,120,40,.14); --neb3:rgba(120,20,40,.14);
+    --glow:rgba(255,138,92,.38);
+  }
+  [data-theme="polar"]{
+    --bg:#010806; --text:#dcfff0; --dim:#7fb8a0;
+    --accent:#6bffc0; --accent2:#c58bff;
+    --panel:rgba(4,22,18,.55); --line:rgba(107,255,192,.22);
+    --neb1:rgba(30,170,110,.20); --neb2:rgba(120,70,200,.18); --neb3:rgba(40,200,180,.10);
+    --glow:rgba(107,255,192,.35);
+  }
+
+  html,body{margin:0;height:100%;overflow:hidden;color:var(--text);background:var(--bg);
+    transition:background-color 1.2s ease, color 1.2s ease}
   body{font-family:ui-monospace,"Cascadia Mono",Consolas,"SFMono-Regular",Menlo,monospace;}
+
+  /* Nebel: drei weiche Schichten, im Ruhemodus treibend */
+  .nebula{position:fixed;inset:-20%;pointer-events:none;transition:opacity 1.5s ease}
+  .nebula i{position:absolute;inset:0;display:block;transition:background 1.4s ease}
+  .nebula i:nth-child(1){background:radial-gradient(ellipse 45% 35% at 22% 30%, var(--neb1), transparent 70%)}
+  .nebula i:nth-child(2){background:radial-gradient(ellipse 40% 32% at 78% 70%, var(--neb2), transparent 70%)}
+  .nebula i:nth-child(3){background:radial-gradient(ellipse 35% 28% at 60% 25%, var(--neb3), transparent 70%);opacity:0}
+
   canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
   .vignette{position:fixed;inset:0;pointer-events:none;
     background:radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,.75) 100%)}
+
   main{position:relative;z-index:2;height:100%;display:flex;align-items:center;justify-content:center;
     padding:16px;box-sizing:border-box;pointer-events:none}
   .panel{pointer-events:auto;max-width:680px;width:100%;box-sizing:border-box;background:var(--panel);
     border:1px solid var(--line);border-radius:14px;padding:26px 26px 22px;
     -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
-    box-shadow:0 0 50px rgba(111,211,255,.07), inset 0 0 30px rgba(111,211,255,.04)}
+    box-shadow:0 0 50px rgba(0,0,0,.25), inset 0 0 30px rgba(255,255,255,.02);
+    transition:opacity 1.2s ease, transform 1.2s ease, border-color 1.2s ease, background 1.2s ease}
   .head{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:11px;
     letter-spacing:.22em;color:var(--dim);text-transform:uppercase;margin-bottom:18px}
   .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent2);
     margin-right:9px;vertical-align:1px;box-shadow:0 0 8px var(--accent2);animation:pulse 1.6s infinite}
   #log{min-height:8.2em;font-size:clamp(14px,2.3vw,17px);line-height:1.65}
   #log .line{display:block}
-  #log .line:first-child{color:var(--accent)}
+  #log .line:first-child{color:var(--accent);transition:color 1.2s ease}
   .cursor{display:inline-block;width:.55em;height:1.05em;background:var(--accent);
     vertical-align:-.18em;margin-left:2px;animation:blink 1s steps(1) infinite}
   .slogan{margin-top:20px;padding-top:18px;border-top:1px solid var(--line);
     font-family:system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-weight:650;
     font-size:clamp(20px,4.2vw,30px);line-height:1.25;color:#fff;min-height:2.5em;
-    text-shadow:0 0 18px rgba(111,211,255,.35);
+    text-shadow:0 0 18px var(--glow);
     opacity:0;transform:translateY(6px);transition:opacity .9s ease, transform .9s ease}
   .slogan.show{opacity:1;transform:none}
-  .hint{position:fixed;left:0;right:0;bottom:14px;z-index:2;text-align:center;font-size:11px;
-    letter-spacing:.2em;text-transform:uppercase;color:var(--dim);opacity:.7;pointer-events:none}
+
+  /* Steuerleiste */
+  .bar{position:fixed;left:0;right:0;bottom:12px;z-index:3;display:flex;justify-content:center;
+    align-items:center;gap:14px;flex-wrap:wrap;padding:0 16px;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--dim);transition:opacity 1.2s ease}
+  .themes{display:flex;gap:8px;align-items:center}
+  .sw{width:16px;height:16px;border-radius:50%;border:1px solid rgba(255,255,255,.25);padding:0;
+    cursor:pointer;opacity:.6;transition:opacity .3s, transform .3s, box-shadow .3s}
+  .sw:hover,.sw:focus-visible{opacity:1;transform:scale(1.15);outline:none}
+  .sw[aria-pressed="true"]{opacity:1;box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--accent)}
+  .sw[data-t="nebula"]{background:linear-gradient(135deg,#5a32a0,#1e6ea0)}
+  .sw[data-t="eis"]{background:linear-gradient(135deg,#2878be,#c8f4ff)}
+  .sw[data-t="riese"]{background:linear-gradient(135deg,#b4321e,#ffd36b)}
+  .sw[data-t="polar"]{background:linear-gradient(135deg,#1eaa6e,#7846c8)}
+  .btn{font:inherit;letter-spacing:inherit;text-transform:inherit;color:var(--dim);background:transparent;
+    border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer;transition:color .3s,border-color .3s}
+  .btn:hover,.btn:focus-visible{color:var(--text);border-color:var(--accent);outline:none}
+  .sep{opacity:.4}
+
+  /* Kurs-Meldung beim Theme-Wechsel */
+  .toast{position:fixed;top:18px;left:50%;transform:translate(-50%,-8px);z-index:3;font-size:12px;
+    letter-spacing:.18em;text-transform:uppercase;color:var(--accent);opacity:0;pointer-events:none;
+    transition:opacity .6s ease, transform .6s ease;text-shadow:0 0 12px var(--glow);white-space:nowrap}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  /* ---------- Ruhemodus ---------- */
+  body.calm .nebula{filter:brightness(1.7) saturate(1.3)}
+  .nebula{transition:filter 3s ease}
+  body.calm .panel{opacity:0;transform:scale(.97);pointer-events:none}
+  body.calm .bar{opacity:0;pointer-events:none}
+  body.calm .nebula i:nth-child(1){animation:drift1 70s ease-in-out infinite alternate}
+  body.calm .nebula i:nth-child(2){animation:drift2 90s ease-in-out infinite alternate}
+  body.calm .nebula i:nth-child(3){opacity:1;transition:opacity 4s ease;animation:drift3 110s ease-in-out infinite alternate}
+  body.calm{cursor:none}
+  body.calm.wake{cursor:default}
+  .calmhint{position:fixed;left:0;right:0;bottom:16px;z-index:3;text-align:center;font-size:11px;
+    letter-spacing:.2em;text-transform:uppercase;color:var(--dim);opacity:0;pointer-events:none;transition:opacity 1s ease}
+  body.calm.wake .calmhint{opacity:.75}
+
+  @keyframes drift1{from{transform:translate(0,0) scale(1)}to{transform:translate(6%,4%) scale(1.15)}}
+  @keyframes drift2{from{transform:translate(0,0) scale(1.05)}to{transform:translate(-7%,-5%) scale(.95)}}
+  @keyframes drift3{from{transform:translate(0,0) scale(.9)}to{transform:translate(-4%,8%) scale(1.2)}}
   @keyframes blink{50%{opacity:0}}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-  @media (max-width:480px){ .panel{padding:20px 18px 18px} .head{font-size:10px;letter-spacing:.15em} }
+  @media (max-width:480px){ .panel{padding:20px 18px 18px} .head{font-size:10px;letter-spacing:.15em} .hint{display:none} }
+  @media (prefers-reduced-motion: reduce){ body.calm .nebula i{animation:none!important} }
 </style>
 </head>
 <body>
+<div class="nebula" aria-hidden="true"><i></i><i></i><i></i></div>
 <canvas id="stars" aria-hidden="true"></canvas>
 <div class="vignette" aria-hidden="true"></div>
+<div id="toast" class="toast" role="status"></div>
 
 <main>
   <section class="panel" aria-live="polite">
@@ -69,35 +139,85 @@
     </noscript>
   </section>
 </main>
-<div class="hint">Klick oder Tipp &rarr; Warp</div>
+
+<nav class="bar" aria-label="Steuerung">
+  <div class="themes" role="group" aria-label="Sektor wählen">
+    <button class="sw" data-t="nebula" title="Nebula-Sektor" aria-label="Theme Nebula"></button>
+    <button class="sw" data-t="eis"    title="Eisnebel"      aria-label="Theme Eisnebel"></button>
+    <button class="sw" data-t="riese"  title="Roter Riese"   aria-label="Theme Roter Riese"></button>
+    <button class="sw" data-t="polar"  title="Polarlicht"    aria-label="Theme Polarlicht"></button>
+  </div>
+  <span class="sep">·</span>
+  <button class="btn" id="calmBtn" title="Taste R">Ruhemodus</button>
+  <span class="sep hint">·</span>
+  <span class="hint">Klick → Warp</span>
+</nav>
+<div class="calmhint">Ruhemodus · Esc oder Klick zum Beenden</div>
 
 <script>
 (() => {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const store = {
+    get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+    set(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+  };
 
-  /* ---------- Sternzeit (eigene Formel: Jahr seit 1946 × 1000 + Jahresanteil) ---------- */
+  /* ---------- Themes ---------- */
+  const THEMES = {
+    nebula: { name:'Nebula-Sektor', stars:[[235,240,255],[150,210,255],[255,200,140]] },
+    eis:    { name:'Eisnebel',      stars:[[230,245,255],[170,225,255],[200,255,255]] },
+    riese:  { name:'Roter Riese',   stars:[[255,235,220],[255,170,120],[255,215,140]] },
+    polar:  { name:'Polarlicht',    stars:[[230,255,245],[140,255,200],[200,160,255]] }
+  };
+  let theme = store.get('ncc-theme');
+  if (!THEMES[theme]) theme = 'nebula';
+
+  const toast = document.getElementById('toast');
+  let toastTimer;
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  function applyTheme(t, announce){
+    theme = t;
+    document.documentElement.dataset.theme = t;
+    document.querySelectorAll('.sw').forEach(b => b.setAttribute('aria-pressed', b.dataset.t === t));
+    const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', bg);
+    store.set('ncc-theme', t);
+    if (announce) showToast('Kurs gesetzt: ' + THEMES[t].name);
+  }
+  applyTheme(theme, false);
+
+  document.querySelectorAll('.sw').forEach(b => {
+    b.addEventListener('pointerdown', e => e.stopPropagation());
+    b.addEventListener('click', () => { applyTheme(b.dataset.t, true); jump(900); });
+  });
+
+  /* ---------- Sternzeit (eigene Formel) ---------- */
   function stardate(d = new Date()) {
     const y = d.getFullYear();
     const start = new Date(y, 0, 1), end = new Date(y + 1, 0, 1);
     return ((y - 1946) * 1000 + (d - start) / (end - start) * 1000).toFixed(1);
   }
 
-  /* ---------- Warp-Sternenfeld ---------- */
+  /* ---------- Sternenfeld ---------- */
   const c = document.getElementById('stars');
   const ctx = c.getContext('2d');
   let w, h, cx, cy, stars = [];
-  let speed = 0, target = reduce ? 0.4 : 2.2, warpUntil = 0;
-  const BASE = reduce ? 0.4 : 2.2, WARP = 38;
+  let speed = 0, warpUntil = 0, calm = false;
+  const BASE = reduce ? 0.4 : 2.2, CALM = reduce ? 0.2 : 0.55, WARP = 38;
 
+  function starColor(){
+    const p = THEMES[theme].stars, r = Math.random();
+    return r < 0.08 ? 1 : r < 0.13 ? 2 : 0;          // Index in die Theme-Palette
+  }
   function newStar(randomDepth) {
     const z = randomDepth ? Math.random() * w : w;
-    const r = Math.random();
-    return {
-      x: (Math.random() * 2 - 1) * w,
-      y: (Math.random() * 2 - 1) * h,
-      z, pz: z,
-      col: r < 0.08 ? [150, 210, 255] : r < 0.13 ? [255, 200, 140] : [235, 240, 255]
-    };
+    return { x:(Math.random()*2-1)*w, y:(Math.random()*2-1)*h, z, pz:z, col:starColor() };
   }
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -107,17 +227,15 @@
     const n = Math.round(Math.min(900, Math.max(250, w * h / 1800)));
     stars = Array.from({ length: n }, () => newStar(true));
   }
-  function project(x, y, z) {
-    const f = cx;
-    return [cx + x * f / z, cy + y * f / z];
-  }
+  const project = (x, y, z) => [cx + x * cx / z, cy + y * cx / z];
 
   let last = performance.now();
   function frame(t) {
     const dt = Math.min((t - last) / 16.67, 3); last = t;
-    target = t < warpUntil ? WARP : BASE;
-    speed += (target - speed) * (target > speed ? 0.06 : 0.03) * dt;
+    const target = t < warpUntil ? WARP : (calm ? CALM : BASE);
+    speed += (target - speed) * (target > speed ? 0.06 : 0.02) * dt;
 
+    const pal = THEMES[theme].stars;
     ctx.clearRect(0, 0, w, h);
     ctx.lineCap = 'round';
     for (const s of stars) {
@@ -127,9 +245,11 @@
       const [x1, y1] = project(s.x, s.y, s.pz);
       const [x2, y2] = project(s.x, s.y, s.z);
       if (x2 < -50 || x2 > w + 50 || y2 < -50 || y2 > h + 50) { Object.assign(s, newStar(false)); continue; }
-      const k = 1 - s.z / w;                 // 0 = fern, 1 = nah
-      const a = Math.min(1, 0.15 + k * 1.1);
-      ctx.strokeStyle = `rgba(${s.col[0]},${s.col[1]},${s.col[2]},${a})`;
+      const k = 1 - s.z / w;
+      let a = Math.min(1, 0.15 + k * 1.1);
+      if (calm) a *= 0.85 + 0.15 * Math.sin(t / 900 + s.x);   // sanftes Funkeln
+      const col = pal[s.col];
+      ctx.strokeStyle = `rgba(${col[0]},${col[1]},${col[2]},${a})`;
       ctx.lineWidth = 0.4 + k * 2.4;
       ctx.beginPath();
       ctx.moveTo(x1, y1);
@@ -142,12 +262,46 @@
   resize();
   requestAnimationFrame(frame);
 
-  if (!reduce) {
-    addEventListener('pointerdown', () => { warpUntil = performance.now() + 1400; });
-    addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') warpUntil = performance.now() + 1400; });
-  } else {
-    document.querySelector('.hint').style.display = 'none';
+  function jump(ms){ if (!reduce) warpUntil = performance.now() + ms; }
+
+  /* ---------- Ruhemodus ---------- */
+  let wakeTimer;
+  function wake(){
+    document.body.classList.add('wake');
+    clearTimeout(wakeTimer);
+    wakeTimer = setTimeout(() => document.body.classList.remove('wake'), 2500);
   }
+  function setCalm(on){
+    if (calm === on) return;
+    calm = on;
+    document.body.classList.toggle('calm', on);
+    if (on) {
+      wake();
+      try { if (document.documentElement.requestFullscreen && !document.fullscreenElement)
+              document.documentElement.requestFullscreen().catch(() => {}); } catch(e){}
+    } else {
+      document.body.classList.remove('wake');
+      try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch(e){}
+    }
+  }
+  const calmBtn = document.getElementById('calmBtn');
+  calmBtn.addEventListener('pointerdown', e => e.stopPropagation());
+  calmBtn.addEventListener('click', () => setCalm(true));
+  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && calm) setCalm(false); });
+  addEventListener('mousemove', () => { if (calm) wake(); });
+
+  addEventListener('pointerdown', () => {
+    if (calm) { setCalm(false); return; }
+    jump(1400);
+  });
+  addEventListener('keydown', e => {
+    if (e.key === 'Escape' && calm) { setCalm(false); return; }
+    if (e.target.closest && e.target.closest('button')) return;
+    const k = e.key.toLowerCase();
+    if (k === 'r') setCalm(!calm);
+    else if (k === ' ' || k === 'enter') jump(1400);
+    else if (k >= '1' && k <= '4') { applyTheme(Object.keys(THEMES)[k - 1], true); jump(900); }
+  });
 
   /* ---------- Logbuch mit Tipp-Effekt ---------- */
   const lines = [
