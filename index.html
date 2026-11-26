@@ -75,6 +75,23 @@
     opacity:0;transform:translateY(6px);transition:opacity .9s ease, transform .9s ease}
   .slogan.show{opacity:1;transform:none}
 
+  /* Play-Knopf und Zähler */
+  .actions{margin-top:18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .play{display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:var(--bg);
+    background:var(--accent);border-radius:999px;padding:10px 20px 10px 16px;font-weight:700;
+    font-family:system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:15px;letter-spacing:.06em;
+    text-transform:uppercase;box-shadow:0 0 22px var(--glow);
+    transition:transform .25s ease, box-shadow .25s ease, background 1.2s ease}
+  .play:hover,.play:focus-visible{transform:translateY(-1px) scale(1.03);box-shadow:0 0 34px var(--glow);outline:none}
+  .play svg{width:22px;height:22px;flex:none}
+  .stat{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  .stat b{color:var(--text);font-weight:600;letter-spacing:.05em}
+  .contacts{margin-top:16px;padding-top:12px;border-top:1px solid var(--line);display:flex;
+    justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .contacts a{color:var(--dim);text-decoration:none;border-bottom:1px dotted var(--line)}
+  .contacts a:hover{color:var(--text)}
+  [hidden]{display:none!important}
+
   /* Steuerleiste */
   .bar{position:fixed;left:0;right:0;bottom:12px;z-index:3;display:flex;justify-content:center;
     align-items:center;gap:14px;flex-wrap:wrap;padding:0 16px;font-size:11px;letter-spacing:.18em;
@@ -133,6 +150,18 @@
     <div class="head"><span><span class="dot"></span>Subraum-Signal</span><span>ncc1701.at</span></div>
     <div id="log"></div>
     <div id="slogan" class="slogan"></div>
+    <div class="actions">
+      <a class="play" href="/saturn/" title="Saturn starten">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" fill="currentColor"/>
+          <ellipse cx="12" cy="12" rx="10.5" ry="3.4" fill="none" stroke="currentColor" stroke-width="1.6" transform="rotate(-20 12 12)"/></svg>
+        Play Saturn
+      </a>
+      <span class="stat" id="saturnStat" hidden><b id="saturnCount">0</b> Missionen geflogen</span>
+    </div>
+    <div class="contacts">
+      <span class="stat" id="visitStat" hidden>Kontakte seit Erstflug: <b id="visitCount">0</b></span>
+      <span class="stat"><a href="/datenschutz.html">Datenschutz</a></span>
+    </div>
     <noscript>
       <p>Logbuch: Neuer Sektor erreicht – ncc1701.at.<br>Diese Welt ist noch unerforscht. Landung folgt.</p>
       <p style="font-size:24px;font-weight:650;color:#fff">Mutig dorthin, wo noch keine Homepage war.</p>
@@ -303,12 +332,29 @@
     else if (k >= '1' && k <= '4') { applyTheme(Object.keys(THEMES)[k - 1], true); jump(900); }
   });
 
+  document.querySelectorAll('.panel a').forEach(a => a.addEventListener('pointerdown', e => e.stopPropagation()));
+
+  /* ---------- Zähler (GoatCounter, ohne Cookies) ---------- */
+  const GC = 'https://ncc1701at.goatcounter.com';
+  async function counter(path, numEl, boxEl){
+    try {
+      const r = await fetch(`${GC}/counter/${encodeURIComponent(path)}.json`);
+      if (!r.ok) return;                                   // 404 = noch keine Daten
+      const n = parseInt(String((await r.json()).count).replace(/\D/g, ''), 10);
+      if (!n) return;
+      numEl.textContent = n.toLocaleString('de-DE');
+      boxEl.hidden = false;
+    } catch(e) { /* Adblocker o. ä. – Zähler bleibt einfach unsichtbar */ }
+  }
+  counter('/', document.getElementById('visitCount'), document.getElementById('visitStat'));
+  counter('saturn-start', document.getElementById('saturnCount'), document.getElementById('saturnStat'));
+
   /* ---------- Logbuch mit Tipp-Effekt ---------- */
   const lines = [
     `Logbuch, Sternzeit ${stardate()}.`,
     'Neuer Sektor erreicht: ncc1701.at',
-    'Sensoren melden: keine Inhalte. Diese Welt ist noch unerforscht.',
-    'Das Außenteam ist unterwegs. Landung folgt.'
+    'Sensoren melden: erste Lebenszeichen nahe Saturn.',
+    'Das Außenteam ist gelandet. Weitere Erkundung folgt.'
   ];
   const slogans = [
     'Mutig dorthin, wo noch keine Homepage war.',
@@ -353,5 +399,6 @@
   typeLog().then(() => sleep(400)).then(rotateSlogans);
 })();
 </script>
+<script data-goatcounter="https://ncc1701at.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
